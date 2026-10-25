@@ -1,5 +1,42 @@
 # print3d
 
+## P1S support in this fork
+
+This fork adds selectable **P1S / X2D** profiles to the existing workflow.
+Machine limits, nozzle count, filament-change advice and print sheets follow
+that selection. The original X2D default remains available; select P1S with
+`--printer p1s` or `PRINT3D_PRINTER=p1s`.
+
+```bash
+uv tool install git+https://github.com/smnnekho/print3d
+print3d status --printer p1s
+print3d setup --agent codex --printer p1s --dry-run
+print3d setup --agent codex --printer p1s --yes
+print3d make 'a 40mm nameplate that says P1S' --printer p1s --script examples/nameplate.py
+```
+
+The last command is for a checkout containing `examples/`. With the installed
+MCP tools, ask Codex to create the model instead. Setup remembers P1S in the
+Codex server command and links the skill. Start a new Codex session after setup.
+MCP `make`, `fit_coupon` and `fits` also accept `printer="p1s"`; `printer_status`
+shows the selected machine and calibration.
+
+P1S presets come from Bambu Studio 02.08.02.61: 0.4 mm nozzle, 0.20 mm Standard,
+Bambu PLA Basic, textured PEI, supports off. Bambu names the shared process
+`0.20mm Standard @BBL P1P`. The profile reserves part of the nominal build
+height and reports **250 mm usable height**. Checks use this profile limit.
+Rebuild with `print3d flatten --printer p1s`; select the preset source with
+`BAMBU_PROFILES_ROOT` if needed.
+
+P1S has one nozzle: confirm AMS availability for multi-colour plates, or make
+single-colour jobs. No printer is contacted and no print is started.
+Fit calibration is separate: `~/print3d/fits-p1s.json` for P1S, the original
+`~/print3d/fits.json` for X2D. An explicit `PRINT3D_FITS` overrides both.
+
+The upstream documentation below describes the original X2D examples. This
+fork's `status` output and job report describe the selected printer.
+
+
 A [Hermes Agent](https://github.com/NousResearch/hermes-agent) plugin that turns
 an idea, a photo of an object, or the shop listing of something you would
 otherwise buy into a Bambu Studio project for a **Bambu Lab X2D (0.4 mm

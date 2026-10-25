@@ -1,0 +1,9 @@
+Pinned Bambu Studio profiles for Bambu Lab P1S 0.4 mm.
+Source: official presets bundled with Bambu Studio 02.08.02.61 on macOS.
+Generated with: BAMBU_PROFILES_ROOT=/Applications/BambuStudio.app/Contents/Resources/profiles print3d flatten --printer p1s
+Machine: Bambu Lab P1S 0.4 nozzle
+Process: 0.20mm Standard @BBL P1P (shared by P1P/P1S in Bambu Studio)
+Filament: Bambu PLA Basic @BBL P1S 0.4 nozzle
+Bed: Textured PEI Plate; supports off.
+The profile's usable height is 250 mm; the DFM check uses this actual limit.
+No personal calibration or printer credentials are included.

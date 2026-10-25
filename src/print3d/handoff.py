@@ -82,7 +82,8 @@ def _parts(report: dict[str, Any], slug: str) -> list[dict[str, Any]]:
 
 
 def _cost_per_kg() -> float:
-    profile = json.loads((default_profiles_dir() / "filament.json").read_text(encoding="utf-8"))
+    # Reports written before printer selection always used X2D profiles.
+    profile = json.loads((default_profiles_dir("x2d") / "filament.json").read_text(encoding="utf-8"))
     return float(profile["filament_cost"][0])
 
 
@@ -160,7 +161,18 @@ def build_handoff(
 
     metrics = report.get("slice_metrics", {})
     grams = metrics.get("filament_g")
-    per_kg = cost_per_kg if cost_per_kg is not None else _cost_per_kg()
+    printer = report.get("printer")
+    per_kg = cost_per_kg if cost_per_kg is not None else (
+        printer["cost_per_kg"] if printer else _cost_per_kg()
+    )
+    if printer:
+        machine_label = (
+            f"{printer['model']}, {printer['nozzle_diameter_mm'][0]:g} mm nozzle, "
+            f"{printer['layer_height_mm']:g} mm layers, {printer['filament']}, "
+            f"{printer['bed_type']}, supports {'on' if printer['supports'] else 'off'}"
+        )
+    else:
+        machine_label = "Bambu Lab X2D, 0.4 mm nozzle, 0.20 mm layers, Bambu PLA Basic, textured PEI, supports off"
     cost = grams * per_kg / 1000.0 if grams is not None else None
     money = (lambda v: f"{v:.2f} {_esc(currency)}".strip())
     listing = report.get("listing") or spec.get("listing")
@@ -173,7 +185,7 @@ def build_handoff(
             "layer_count": metrics.get("layer_count"),
         }
     ]
-    fits = load_fits()
+    fits = report["fit_calibration"] if "fit_calibration" in report else load_fits("x2d")
     ready = report.get("status") == "ready_for_review"
 
     stats = [
@@ -312,8 +324,7 @@ footer {{ margin-top:32px; color:var(--muted); font-size:12px; border-top:1px so
 <header>
   <div>
     <h1>{_esc(report["brief"]["prompt"])}</h1>
-    <p class="sub">{_esc(slug)} · {time.strftime("%Y-%m-%d")} · Bambu Lab X2D, 0.4 mm nozzle, 0.20 mm layers,
-    Bambu PLA Basic, textured PEI, supports off</p>
+    <p class="sub">{_esc(slug)} · {time.strftime("%Y-%m-%d")} · {_esc(machine_label)}</p>
     {replaces}
   </div>
   <span class="badge">{'Ready to print' if ready else 'Needs work'}</span>

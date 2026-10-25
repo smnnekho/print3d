@@ -9,14 +9,22 @@ from pathlib import Path
 PACKAGE = Path(__file__).resolve().parent
 JOBS_ENV = "PRINT3D_JOBS"
 NAME_RE = re.compile(r"[a-z0-9_-]{1,64}")
+PRINTERS = ("x2d", "p1s")
+
+
+def selected_printer(printer: str | None = None) -> str:
+    value = printer or os.environ.get("PRINT3D_PRINTER", "").strip() or "x2d"
+    if value not in PRINTERS:
+        raise ValueError(f"Unknown printer {value!r}; choose from {', '.join(PRINTERS)}.")
+    return value
 
 
 def repo_root() -> Path:
     return PACKAGE.parents[1]
 
 
-def default_profiles_dir() -> Path:
-    return PACKAGE / "profiles" / "x2d-0.4"
+def default_profiles_dir(printer: str | None = None) -> Path:
+    return PACKAGE / "profiles" / f"{selected_printer(printer)}-0.4"
 
 
 def coupon_script() -> Path:

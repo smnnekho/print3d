@@ -1,9 +1,8 @@
 """Coloured copies of the pinned filament, one per colour a job asks for.
 
 Colour is the only thing that changes: the material stays the pinned Bambu PLA
-Basic, so every check and the slice keep meaning the same thing. Studio puts
-the first two filaments on the X2D's two nozzles; a third or more is swapped in
-on one of them, with a purge per change.
+Basic, so every check and the slice keep meaning the same thing. The selected
+machine profile determines the nozzle count and required filament swaps.
 """
 
 from __future__ import annotations
@@ -34,7 +33,6 @@ COLOURS = {
 }
 DEFAULT_COLOUR = "green"
 HEX_RE = re.compile(r"^#?[0-9a-fA-F]{6}$")
-NOZZLES = 2
 
 
 class FilamentError(ValueError):

@@ -22,6 +22,21 @@ DEFAULT_FILAMENT = "Bambu PLA Basic @BBL X2D 0.4 nozzle"
 DEFAULT_BED_TYPE = "Textured PEI Plate"
 
 
+def flatten_printer(printer: str, *, output_dir: Path) -> dict[str, Any]:
+    """Rebuild a supported profile from the installed Bambu Studio presets."""
+    from print3d.paths import selected_printer
+
+    if selected_printer(printer) == "p1s":
+        return flatten_x2d(
+            output_dir=output_dir,
+            machine_leaf="Bambu Lab P1S 0.4 nozzle",
+            # Bambu shares this process between P1P and P1S.
+            process_leaf="0.20mm Standard @BBL P1P",
+            filament_leaves=["Bambu PLA Basic @BBL P1S 0.4 nozzle"],
+        )
+    return flatten_x2d(output_dir=output_dir)
+
+
 class FlattenError(RuntimeError):
     """Raised when a profile tree cannot be flattened."""
 

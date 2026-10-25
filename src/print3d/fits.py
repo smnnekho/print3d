@@ -16,6 +16,7 @@ from pathlib import Path
 from typing import Any
 
 from print3d.printability import Advice
+from print3d.paths import selected_printer
 
 FITS_ENV = "PRINT3D_FITS"
 # Per side, in mm. press: hammered or pressed in, stays put. snug: pushes in by
@@ -27,14 +28,16 @@ TIGHTER_BY_MM = 0.04
 LOOSER_BY_MM = 0.10
 
 
-def fits_path() -> Path:
+def fits_path(printer: str | None = None) -> Path:
     if env := os.environ.get(FITS_ENV, "").strip():
         return Path(env).expanduser()
-    return Path.home() / "print3d" / "fits.json"
+    printer = selected_printer(printer)
+    name = "fits.json" if printer == "x2d" else f"fits-{printer}.json"
+    return Path.home() / "print3d" / name
 
 
-def load_fits() -> dict[str, Any]:
-    path = fits_path()
+def load_fits(printer: str | None = None) -> dict[str, Any]:
+    path = fits_path(printer)
     saved = json.loads(path.read_text(encoding="utf-8")) if path.is_file() else {}
     clearance = {**DEFAULT_CLEARANCE_MM, **saved.get("clearance_mm", {})}
     calibrated = sorted(saved.get("clearance_mm", {}))
@@ -46,13 +49,13 @@ def load_fits() -> dict[str, Any]:
     }
 
 
-def save_fits(values: dict[str, float]) -> dict[str, Any]:
+def save_fits(values: dict[str, float], printer: str | None = None) -> dict[str, Any]:
     unknown = sorted(set(values) - set(KINDS))
     if unknown:
         raise ValueError(f"Unknown fit {', '.join(unknown)}. Fits are: {', '.join(KINDS)}.")
     if any(mm < 0 or mm > 1.0 for mm in values.values()):
         raise ValueError("A clearance is per side, in mm, between 0 and 1.")
-    path = fits_path()
+    path = fits_path(printer)
     saved = json.loads(path.read_text(encoding="utf-8")) if path.is_file() else {}
     clearance = {**saved.get("clearance_mm", {}), **{k: round(v, 3) for k, v in values.items()}}
     order = [clearance.get(kind) for kind in KINDS if kind in clearance]
@@ -63,7 +66,7 @@ def save_fits(values: dict[str, float]) -> dict[str, Any]:
         json.dumps({"clearance_mm": clearance, "calibrated_at": time.strftime("%Y-%m-%d")}, indent=2) + "\n",
         encoding="utf-8",
     )
-    return load_fits()
+    return load_fits(printer)
 
 
 def _declared(pair: dict[str, Any], declared: list[dict[str, Any]]) -> str | None:

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -12,10 +13,11 @@ from print3d.brief import parse_brief
 from print3d import setup as installer
 from print3d import spec as specs
 from print3d.fits import KINDS, load_fits, save_fits
-from print3d.flatten import flatten_x2d
+from print3d.flatten import flatten_printer
 from print3d.handoff import build_handoff
 from print3d.likeness import check_job
-from print3d.paths import coupon_script, default_profiles_dir, job_path, safe_name
+from print3d.paths import PRINTERS, coupon_script, default_profiles_dir, job_path, safe_name, selected_printer
+from print3d.printers import profile_details
 from print3d.photo import grid, meet
 from print3d.pipeline import _model_params, run_job
 from print3d.printability import advise, analyze_mesh, analyze_slice
@@ -220,7 +222,7 @@ def cmd_setup(args: argparse.Namespace) -> int:
 
 
 def cmd_flatten(args: argparse.Namespace) -> int:
-    _print_json(flatten_x2d(output_dir=Path(args.output) if args.output else default_profiles_dir()))
+    _print_json(flatten_printer(selected_printer(), output_dir=Path(args.output) if args.output else default_profiles_dir()))
     return 0
 
 
@@ -235,6 +237,7 @@ def cmd_status(_args: argparse.Namespace) -> int:
             "blender": blender,
             "studio": str(find_studio()),
             "profiles": str(profiles),
+            "printer": {"id": selected_printer(), **profile_details(profiles)},
             "profiles_present": all(
                 (profiles / name).is_file()
                 for name in ("machine.json", "process.json", "filament.json")
@@ -263,7 +266,7 @@ def cmd_plan(args: argparse.Namespace) -> int:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="print3d", description="Idea to a reviewable Bambu Studio project for an X2D"
+        prog="print3d", description="Idea to a reviewable Bambu Studio project for a P1S or X2D"
     )
     sub = parser.add_subparsers(dest="cmd", required=True)
 
@@ -393,7 +396,7 @@ def build_parser() -> argparse.ArgumentParser:
     setup_cmd.add_argument("--yes", action="store_true", help="Apply without asking")
     setup_cmd.set_defaults(func=cmd_setup)
 
-    flatten_cmd = sub.add_parser("flatten", help="Rebuild pinned X2D Studio profiles")
+    flatten_cmd = sub.add_parser("flatten", help="Rebuild the selected printer's Studio profiles")
     flatten_cmd.add_argument("--output")
     flatten_cmd.set_defaults(func=cmd_flatten)
 
@@ -404,12 +407,18 @@ def build_parser() -> argparse.ArgumentParser:
     plan_cmd.add_argument("mesh")
     plan_cmd.add_argument("output")
     plan_cmd.set_defaults(func=cmd_plan)
+    for command in (make_cmd, slice_cmd, coupon_cmd, fit_cmd, model_cmd, status_cmd,
+                    plan_cmd, flatten_cmd, mcp_cmd, setup_cmd):
+        command.add_argument("--printer", choices=PRINTERS,
+                             help="Printer (default: PRINT3D_PRINTER, otherwise x2d)")
     return parser
 
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     try:
+        if getattr(args, "printer", None):
+            os.environ["PRINT3D_PRINTER"] = args.printer
         return args.func(args)
     except Exception as exc:  # noqa: BLE001
         print(f"error: {exc}", file=sys.stderr)

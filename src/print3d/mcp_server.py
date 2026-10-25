@@ -20,7 +20,8 @@ from print3d import spec as specs
 from print3d.fits import load_fits, save_fits
 from print3d.handoff import build_handoff
 from print3d.likeness import check_job
-from print3d.paths import coupon_script, job_path, safe_name, skill_dir
+from print3d.paths import coupon_script, default_profiles_dir, job_path, safe_name, selected_printer, skill_dir
+from print3d.printers import profile_details
 from print3d.photo import grid as draw_grid
 from print3d.photo import meet as cross
 from print3d.pipeline import run_job
@@ -29,7 +30,8 @@ from print3d.printability import advise, analyze_mesh, analyze_slice
 
 INSTRUCTIONS = """\
 print3d turns an idea, or a photo of an object, into a Bambu Studio project for a
-Bambu Lab X2D. You write a Blender (bpy) model script; `make` runs it, checks the
+Bambu Lab P1S or X2D. Call `printer_status` to see the configured printer.
+You write a Blender (bpy) model script; `make` runs it, checks the
 mesh, slices it and returns advice, each note with the fix to apply to the script.
 Iterate until no note is at `error`, then hand the user the .3mf path.
 
@@ -102,6 +104,7 @@ def make(
     mesh: str | None = None,
     color: str | None = None,
     dry_run: bool = False,
+    printer: Literal["p1s", "x2d"] | None = None,
 ) -> list[Any]:
     """Model, check and slice. With no model yet, writes a starter model.py and names its path.
 
@@ -113,6 +116,7 @@ def make(
         mesh=Path(mesh) if mesh else None,
         color=color,
         execute=not dry_run,
+        printer=printer,
     )
     overlays = [r["overlay"] for r in report.get("likeness", [])]
     plates = [p["png"] for p in report.get("plates", [])] or [report.get("plate_png")]
@@ -130,22 +134,31 @@ def handoff(slug: str, cost_per_kg: float | None = None, currency: str | None = 
 
 
 @tool(images=True)
-def fit_coupon() -> list[Any]:
+def fit_coupon(printer: Literal["p1s", "x2d"] | None = None) -> list[Any]:
     """Slice the fit coupon: a pin and holes at 0.00 to 0.40 mm clearance, to calibrate fits on this printer."""
-    report = run_job("fit coupon", script=coupon_script())
+    report = run_job("fit coupon", script=coupon_script(), printer=printer)
     return _with_images(report, [report.get("plate_png")])
 
 
 @tool()
 def fits(
-    press: float | None = None, snug: float | None = None, slide: float | None = None, free: float | None = None
+    press: float | None = None, snug: float | None = None, slide: float | None = None, free: float | None = None,
+    printer: Literal["p1s", "x2d"] | None = None,
 ) -> str:
     """This printer's clearance per side for each fit, as model scripts get it in params["fit"].
 
     Pass values to record what the user felt on the printed fit coupon.
     """
     values = {k: v for k, v in {"press": press, "snug": snug, "slide": slide, "free": free}.items() if v is not None}
-    return _json(save_fits(values) if values else load_fits())
+    return _json(save_fits(values, printer) if values else load_fits(printer))
+
+
+@tool(read_only=True)
+def printer_status(printer: Literal["p1s", "x2d"] | None = None) -> str:
+    """Read the selected printer, actual profile limits, and calibration without starting a print."""
+    printer = selected_printer(printer)
+    return _json({"id": printer, **profile_details(default_profiles_dir(printer)),
+                  "fit_calibration": load_fits(printer)})
 
 
 @tool(images=True, read_only=True)

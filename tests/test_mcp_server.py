@@ -95,4 +95,20 @@ def test_only_read_tools_skip_the_prompt():
             return {t.name for t in (await client.list_tools()).tools
                     if t.annotations and t.annotations.read_only_hint}
 
-    assert anyio.run(hints) == {"guide", "show_spec", "meet", "grid", "check", "likeness", "view"}
+    assert anyio.run(hints) == {"guide", "show_spec", "meet", "grid", "check", "likeness", "view", "printer_status"}
+
+
+def test_mcp_printer_override_reaches_pipeline(tmp_path, jobs, monkeypatch):
+    from conftest import write_cube_stl
+
+    monkeypatch.setenv("PRINT3D_PRINTER", "x2d")
+    mesh = write_cube_stl(tmp_path / "cube.stl")
+    status, result = _call(
+        ("printer_status", {"printer": "p1s"}),
+        ("make", {"prompt": "cube", "mesh": str(mesh), "printer": "p1s", "dry_run": True}),
+    )
+    assert not status.is_error and not result.is_error
+    assert json.loads(status.content[0].text)["nozzles"] == 1
+    report = json.loads(result.content[0].text)
+    assert report["printer"]["id"] == "p1s"
+    assert "p1s-0.4" in report["slice_plan"]["request"]["machine"]

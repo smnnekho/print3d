@@ -1,11 +1,11 @@
 ---
 name: print3d
-description: Model a part in Blender from an idea, a photo of an object, or the shop listing of something you would otherwise buy, slice it for the Bambu X2D, and iterate until it prints clean and matches the photo.
+description: Model a part in Blender from an idea, a photo of an object, or the shop listing of something you would otherwise buy, slice it for the selected Bambu P1S or X2D, and iterate until it prints clean and matches the photo.
 argument-hint: "[what to make, a photo of the object, or a shop link]"
 disable-model-invocation: true
 ---
 
-# /print3d — idea to a printable X2D part
+# /print3d — idea to a printable Bambu part
 
 `print3d` below is the print3d command line. When you have the print3d MCP
 tools, use those of the same names instead: they return the plate preview and
@@ -24,6 +24,12 @@ Nothing here reaches the printer. The last step is a sentence handing the user a
 `.3mf`. Printing is theirs to do in Studio, with the plate in front of them.
 
 ## 1. Read the brief
+
+First run `print3d status` (MCP: `printer_status`) and use its selected printer.
+Select explicitly with `--printer p1s` or `--printer x2d`; MCP `make`,
+`fit_coupon` and `fits` accept the same `printer` argument. The default is
+`PRINT3D_PRINTER`, otherwise `x2d`. Keep the same printer for the whole job.
+Use `print3d setup --agent codex --printer p1s` to remember P1S for Codex.
 
 Size, text, colour, what the part has to do. Ask at most one question, and
 only when a missing number makes the part unprintable.
@@ -79,7 +85,7 @@ asks for.
 print3d make "<prompt>"
 ```
 
-Models, DFM-checks, slices with the pinned X2D presets, and reports. The run is
+Models, DFM-checks, slices with the selected printer presets, and reports. The run is
 **red** when `severity` is `error` — exit code 1, `status: needs_work`.
 
 While red: read `advice`, apply the `fix` each note carries to `model.py`, run
@@ -134,7 +140,18 @@ and the print sheet.
 
 ## The machine
 
-X2D, 0.4 mm nozzle, 256 × 256 × 260 mm bed, 0.20 mm layers, Bambu PLA Basic,
-textured PEI plate. **The pinned process has supports off** — that is why an
-overhang note is a real defect and not a setting to flip. Two nozzles: two
-colours print without a filament change.
+Both profiles use a 0.4 mm nozzle, 0.20 mm layers, Bambu PLA Basic and a textured
+PEI plate. **Supports are off**: an overhang error requires a model change.
+Read the actual bed limits from `status` / `printer_status`; do not assume the
+printers have the same usable height.
+
+- P1S has one nozzle. Multiple colours on the same plate require filament
+  changes; confirm a compatible AMS is available before planning that job.
+  Otherwise use single-colour jobs.
+- X2D has two nozzles. Additional colours require filament changes.
+
+Fit calibration is printer-specific: P1S uses `~/print3d/fits-p1s.json`;
+X2D keeps `~/print3d/fits.json`. `PRINT3D_FITS` explicitly overrides either path.
+Default clearances are starting points, not measured printer calibration.
+
+A successful slice is not a physical fit or load test. Report those separately.

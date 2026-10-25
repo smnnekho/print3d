@@ -9,6 +9,7 @@ backed up beside itself first.
 from __future__ import annotations
 
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -18,7 +19,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
-from print3d.paths import skill_dir
+from print3d.paths import selected_printer, skill_dir
 
 AGENTS = ("claude", "codex", "cursor", "gemini", "hermes")
 NAME = "print3d"
@@ -40,7 +41,10 @@ class Change:
 
 
 def server_command() -> list[str]:
-    return [sys.executable, "-m", "print3d", "mcp"]
+    command = [sys.executable, "-m", "print3d", "mcp"]
+    if os.environ.get("PRINT3D_PRINTER", "").strip():
+        command.extend(["--printer", selected_printer()])
+    return command
 
 
 def _backup(path: Path) -> None:
@@ -152,6 +156,9 @@ def plan(
                 changes.append(Change(agent, "user scope", "claude mcp add print3d",
                                       lambda claude=claude: _claude_mcp(claude, run)))
         elif agent == "codex":
+            link = home / ".codex" / "skills" / NAME
+            changes.append(Change(agent, str(link), f"link the skill to {skill_dir()}",
+                                  lambda link=link: _link(link, skill_dir())))
             path = home / ".codex" / "config.toml"
             changes.append(Change(agent, str(path), "add [mcp_servers.print3d]",
                                   lambda path=path: _merge_codex_toml(path)))

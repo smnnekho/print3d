@@ -43,6 +43,16 @@ def test_json_configs_keep_other_servers(tmp_path):
     assert config["mcpServers"]["print3d"]["args"] == ["-m", "print3d", "mcp"]
 
 
+def test_codex_remembers_printer_and_links_skill(tmp_path, monkeypatch):
+    import tomllib
+
+    monkeypatch.setenv("PRINT3D_PRINTER", "p1s")
+    _apply(tmp_path, ["codex"])
+    config = tomllib.loads((tmp_path / ".codex" / "config.toml").read_text())
+    assert config["mcp_servers"]["print3d"]["args"][-2:] == ["--printer", "p1s"]
+    assert (tmp_path / ".codex" / "skills" / "print3d").resolve() == skill_dir()
+
+
 def test_broken_json_is_left_alone(tmp_path):
     mcp = tmp_path / ".cursor" / "mcp.json"
     mcp.parent.mkdir()

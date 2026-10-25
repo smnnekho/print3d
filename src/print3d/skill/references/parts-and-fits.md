@@ -42,8 +42,9 @@ all the placement a part needs. Studio arranges the objects on each plate.
 
 ## Colours
 
-The X2D has two nozzles: two colours print without a filament change. A third
-colour is swapped in on one of them, with a purge each time; the run says so.
+Use the selected machine: P1S has one nozzle, X2D has two. More colours than
+nozzles require filament swaps and purging. Confirm a compatible AMS before
+planning such a job; otherwise prepare single-colour jobs.
 Colour never changes the material: every filament is the pinned Bambu PLA
 Basic in another colour.
 
@@ -107,7 +108,8 @@ print3d fit show
 ```
 
 Every later run hands these to the model scripts and measures against them.
-Calibration lives in `~/print3d/fits.json` (or `$PRINT3D_FITS`).
+Calibration lives in `~/print3d/fits-p1s.json` for P1S and
+`~/print3d/fits.json` for X2D (or the explicit `$PRINT3D_FITS` override).
 
 ## What the run reports
 
